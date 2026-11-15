@@ -12,6 +12,8 @@ Android 第三方虎扑赛事评分客户端
 
 喵扑专注于电竞与体育赛事的赛程、选手评分和赛事讨论，涵盖英雄联盟、无畏契约、CS2、篮球、足球等项目。用户可按关注的赛事订阅内容，查看比赛结果、各局选手表现及虎扑社区讨论。
 
+> 本仓库是 [KiritoXDone/Miaopu](https://github.com/KiritoXDone/Miaopu) 的二次开发版本，在原作基础上新增了 NBA 文字直播与球队赛程战绩功能。感谢原作者 [@KiritoXDone](https://github.com/KiritoXDone) 的工作，功能建议与问题反馈欢迎优先前往上游仓库。
+
 ## 下载与使用
 
 在 [Releases](https://github.com/KiritoXDone/Miaopu/releases/latest) 下载 APK，支持 **Android 7.0 及以上**版本。
@@ -19,6 +21,8 @@ Android 第三方虎扑赛事评分客户端
 赛事订阅位于 **我的 → 赛事订阅**，支持搜索、分类筛选和调整订阅顺序。首页汇总已订阅项目的比赛，赛事页提供完整赛程与搜索入口。
 
 比赛详情可按局次和队伍查看选手表现；有全场评分或技术统计的比赛，会展示对应内容。选手详情包含评分分布和评论，评论可按最热或最新排序，支持多层回复、点赞与取消点赞。
+
+**NBA 比赛详情提供「直播」页签**：文字实录按时间倒序展示（最新在前），比赛进行中每 3 秒自动刷新，数据来自虎扑网页版实录。点击对阵双方队名或队标可进入球队页，查看本赛季战绩（胜负、排名、主客场）与按时间排序的球队赛程。
 
 浏览赛程、评分和评论无需登录。参与评分、发表评论、回复或点赞需在 **我的** 中登录虎扑账号。应用更新可通过 **我的 → 检查更新** 获取。
 
@@ -108,6 +112,10 @@ cd Miaopu
 
 ## 致谢
 
+感谢 [KiritoXDone](https://github.com/KiritoXDone) 创建了喵扑并开源全部实现，本仓库的全部基础能力均来自其工作。
+
+感谢 [GLM-5.3](https://github.com/zai-org/GLM)（Z.ai）在本次二次开发中承担了 API 调研、功能实现与测试编写。
+
 感谢虎扑及其社区用户提供的赛事内容与讨论，以及 Miuix、Jetpack Compose、Coil 等开源项目。
 
 感谢 [LINUX DO](https://linux.do/) 社区的交流与分享。
@@ -116,7 +124,7 @@ cd Miaopu
 
 Copyright (c) 2026 KiritoXDone
 
-本项目原创代码采用 [GNU General Public License v3.0](LICENSE)（`GPL-3.0-only`）授权。
+本项目原创代码采用 [GNU General Public License v3.0](LICENSE)（`GPL-3.0-only`）授权。本仓库的修改同样以 `GPL-3.0-only` 发布，并保留原作者的版权声明。
 
 第三方依赖遵循各自的许可证。虎扑赛事数据、用户评论，以及截图中的头像、队标等第三方内容不属于本项目的授权范围，其权利归各自权利人所有。
 
