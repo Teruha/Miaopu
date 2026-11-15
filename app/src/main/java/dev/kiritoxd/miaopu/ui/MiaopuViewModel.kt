@@ -27,6 +27,9 @@ import dev.kiritoxd.miaopu.data.RatingStage
 import dev.kiritoxd.miaopu.data.RatingTarget
 import dev.kiritoxd.miaopu.data.Schedule
 import dev.kiritoxd.miaopu.data.StageRatingDetail
+import dev.kiritoxd.miaopu.data.Team
+import dev.kiritoxd.miaopu.data.basketball.BasketballAdapter
+import dev.kiritoxd.miaopu.data.basketball.BasketballTeamHead
 import dev.kiritoxd.miaopu.data.mergeCommentsByHeat
 import dev.kiritoxd.miaopu.data.isNewerVersion
 import dev.kiritoxd.miaopu.widget.WidgetUpdates
@@ -66,8 +69,10 @@ class MiaopuViewModel(
 ) : AndroidViewModel(application) {
     private val cookieSession = HupuCookieSession(application).also { it.restore() }
     private val adapter = HupuAdapter(cookieSession)
+    private val basketballAdapter = BasketballAdapter()
     private val releaseAdapter = GitHubReleaseAdapter()
     internal val matchDetail = MatchDetailController(viewModelScope, adapter::getStageRatingDetail)
+    internal val textLive = TextLiveFeed(viewModelScope, BasketballAdapter())
     internal val commentReplies = CommentRepliesController(viewModelScope, adapter)
     internal val commentActions = CommentActionsController(viewModelScope, adapter::setCommentLight, adapter::publishReply) { message = it }
     private val subscriptionStore = EsportSubscriptionStore(application)
@@ -103,6 +108,10 @@ class MiaopuViewModel(
     private var scheduleStates: Map<Esport, LoadState<Schedule>> by mutableStateOf(emptyMap())
     var ratingState: LoadState<RatingDetail> by mutableStateOf(LoadState.Loading)
         private set
+    internal var teamHeadState: LoadState<BasketballTeamHead> by mutableStateOf(LoadState.Loading)
+        private set
+    internal var teamScheduleState: LoadState<Schedule> by mutableStateOf(LoadState.Loading)
+        private set
     var stageRatingState: LoadState<StageRatingDetail> by mutableStateOf(LoadState.Loading)
         private set
     var commentState: LoadState<CommentPage> by mutableStateOf(LoadState.Loading)
@@ -129,6 +138,8 @@ class MiaopuViewModel(
 
     private val scheduleJobs = mutableMapOf<Esport, Job>()
     private var ratingJob: Job? = null
+    private var teamHeadJob: Job? = null
+    private var teamScheduleJob: Job? = null
     private var stageRatingJob: Job? = null
     private var commentJob: Job? = null
     private var moreCommentsJob: Job? = null
@@ -232,6 +243,7 @@ class MiaopuViewModel(
             }
             AppScreen.Subscriptions -> Unit
             is AppScreen.Ratings -> loadRatings(current.match.toModel())
+            is AppScreen.Team -> loadTeam(current.teamId)
             is AppScreen.Stage -> loadStageRating(current.match.toModel(), current.stage.toModel())
             is AppScreen.Comments -> loadComments(current.target.toModel())
             is AppScreen.Web -> Unit
@@ -292,6 +304,16 @@ class MiaopuViewModel(
         navigator?.push(ratings)
         loadRatings(match)
     }
+
+    fun openTeam(team: Team) {
+        if (team.id.isBlank()) return
+        navigator?.push(AppScreen.Team(teamId = team.id, name = team.name, logoUrl = team.logoUrl))
+        loadTeam(team.id)
+    }
+
+    fun bindTextLive(match: MatchSummary) = textLive.bind(match)
+
+    fun retryTextLive() = textLive.refresh()
 
     internal fun openWidgetDestination(match: MatchSummary?, sport: Esport?) {
         val currentNavigator = navigator
@@ -501,6 +523,11 @@ class MiaopuViewModel(
         if (current is AppScreen.Ratings) {
             ratingJob?.cancel()
             matchDetail.close()
+            textLive.close()
+        }
+        if (current is AppScreen.Team) {
+            teamHeadJob?.cancel()
+            teamScheduleJob?.cancel()
         }
         if (current is AppScreen.Stage) stageRatingJob?.cancel()
         navigator?.pop()
@@ -551,6 +578,21 @@ class MiaopuViewModel(
         ratingJob = viewModelScope.launch {
             val nextState = adapter.getRatings(match).toLoadState()
             if (navigator?.containsMatch(match.id) == true) ratingState = nextState
+        }
+    }
+
+    private fun loadTeam(teamId: String) {
+        teamHeadJob?.cancel()
+        teamScheduleJob?.cancel()
+        teamHeadState = LoadState.Loading
+        teamScheduleState = LoadState.Loading
+        teamHeadJob = viewModelScope.launch {
+            val nextState = basketballAdapter.teamHead(teamId).toLoadState()
+            if (navigator?.containsTeam(teamId) == true) teamHeadState = nextState
+        }
+        teamScheduleJob = viewModelScope.launch {
+            val nextState = basketballAdapter.teamSchedule(teamId, Esport.NBA).toLoadState()
+            if (navigator?.containsTeam(teamId) == true) teamScheduleState = nextState
         }
     }
 

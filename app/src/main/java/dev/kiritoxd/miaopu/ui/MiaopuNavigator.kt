@@ -35,6 +35,10 @@ internal class MiaopuNavigator(
         }
     }
 
+    fun containsTeam(teamId: String): Boolean = backStack.any {
+        (it as AppScreen) is AppScreen.Team && (it as AppScreen.Team).teamId == teamId
+    }
+
     fun pop(): Boolean = controller.pop()
 }
 
@@ -43,6 +47,7 @@ internal val AppScreen.navigationContentKey: String
         AppScreen.Schedule -> "schedule"
         AppScreen.Subscriptions -> "subscriptions"
         is AppScreen.Ratings -> "ratings:${match.id}"
+        is AppScreen.Team -> "team:$teamId"
         is AppScreen.Stage -> buildString {
             append("stage:")
             append(match.id)

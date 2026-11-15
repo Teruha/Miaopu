@@ -80,6 +80,9 @@ fun MiaopuApp(viewModel: MiaopuViewModel) {
                 entry<AppScreen.Ratings>(contentKey = { it.navigationContentKey }) { screen ->
                     RatingsScreen(viewModel, screen.match.toModel())
                 }
+                entry<AppScreen.Team>(contentKey = { it.navigationContentKey }) { screen ->
+                    TeamScreen(viewModel, screen.teamId, screen.name, screen.logoUrl)
+                }
                 entry<AppScreen.Stage>(contentKey = { it.navigationContentKey }) { screen ->
                     MatchStageScreen(
                         viewModel = viewModel,

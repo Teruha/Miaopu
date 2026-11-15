@@ -1,5 +1,6 @@
 package dev.kiritoxd.miaopu.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,7 +24,7 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
-internal fun MatchHero(match: MatchSummary, liveScore: MatchLiveScore? = null) {
+internal fun MatchHero(match: MatchSummary, liveScore: MatchLiveScore? = null, onTeamClick: (Team) -> Unit = {}) {
     Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         cornerRadius = 20.dp, insideMargin = PaddingValues(horizontal = 16.dp, vertical = 16.dp)) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -37,7 +38,7 @@ internal fun MatchHero(match: MatchSummary, liveScore: MatchLiveScore? = null) {
                 // Measure the complete score first; reserve the other half for the two teams.
                 val scoreMaxWidth = maxWidth / 2
                 Row(Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                    HeroTeam(match.teams.getOrNull(0), Modifier.weight(1f))
+                    HeroTeam(match.teams.getOrNull(0), Modifier.weight(1f), onTeamClick)
                     Column(Modifier.widthIn(max = scoreMaxWidth), horizontalAlignment = Alignment.CenterHorizontally) {
                         liveScore?.currentMap?.let {
                             Text(it, modifier = Modifier.background(MiuixTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(5.dp))
@@ -55,7 +56,7 @@ internal fun MatchHero(match: MatchSummary, liveScore: MatchLiveScore? = null) {
                                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                         }
                     }
-                    HeroTeam(match.teams.getOrNull(1), Modifier.weight(1f))
+                    HeroTeam(match.teams.getOrNull(1), Modifier.weight(1f), onTeamClick)
                 }
             } else {
                 Text(match.teams.joinToString(" · ") { it.name }.ifBlank { match.esport.title },
@@ -67,8 +68,14 @@ internal fun MatchHero(match: MatchSummary, liveScore: MatchLiveScore? = null) {
 }
 
 @Composable
-private fun HeroTeam(team: Team?, modifier: Modifier) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+private fun HeroTeam(team: Team?, modifier: Modifier, onTeamClick: (Team) -> Unit) {
+    Column(
+        modifier.then(if (team?.id?.isNotBlank() == true) Modifier.clickable(
+            interactionSource = null, indication = null, onClick = { onTeamClick(team) },
+        ) else Modifier),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
         if (team != null) TeamLogo(team, 44.dp)
         Text(team?.name ?: "待定", fontSize = 14.sp, fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)

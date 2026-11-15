@@ -10,11 +10,22 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.kiritoxd.miaopu.data.Esport
 import dev.kiritoxd.miaopu.data.StageRatingDetail
 import dev.kiritoxd.miaopu.data.matchdetail.MatchStats
 import dev.kiritoxd.miaopu.data.MatchSummary
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+/** NBA pages have a text-live feed; the other leagues keep the rating-only layout. */
+internal val MatchSummary.hasTextLive: Boolean get() = esport == Esport.NBA
+
+private fun defaultPageName(match: MatchSummary): String =
+    if (match.hasTextLive && match.statusCode == "INPROGRESS") "LIVE" else "RATING"
+
+private enum class DetailPage(val label: String) {
+    LIVE("直播"), RATING("评分"), STATS("数据"),
+}
 
 @Composable
 fun RatingsScreen(viewModel: MiaopuViewModel, match: MatchSummary) {
@@ -24,8 +35,9 @@ fun RatingsScreen(viewModel: MiaopuViewModel, match: MatchSummary) {
     val width = LocalConfiguration.current.screenWidthDp
     val layout = remember(match.uniqueKey, width, density.density, density.fontScale) { DetailLayoutState() }
     val ratingListState = rememberLazyListState()
+    val liveListState = rememberLazyListState()
     val dataListState = rememberLazyListState()
-    var page by rememberSaveable(match.uniqueKey) { mutableIntStateOf(0) }
+    var pageName by rememberSaveable(match.uniqueKey) { mutableStateOf(defaultPageName(match)) }
     var header by remember(match.uniqueKey) { mutableStateOf<MatchHeaderSnapshot?>(null) }
     val candidateHeader = remember(detail.summary, detail.statistics, detail.hasStatistics) {
         matchHeaderSnapshot(detail.summary, detail.statistics, detail.hasStatistics)
@@ -34,7 +46,14 @@ fun RatingsScreen(viewModel: MiaopuViewModel, match: MatchSummary) {
         ((viewModel.ratingState as? LoadState.Ready)?.value?.stages.isNullOrEmpty() || detail.stage !is LoadState.Loading)
     val visibleHeader = header ?: candidateHeader?.takeIf { bodyReady }
     SideEffect { if (header == null && visibleHeader != null) header = visibleHeader }
-    val activePage = if (visibleHeader?.hasStatistics == true) page else 0
+    val pages = remember(visibleHeader?.hasStatistics, match.hasTextLive) {
+        buildList {
+            if (match.hasTextLive) add(DetailPage.LIVE)
+            add(DetailPage.RATING)
+            if (visibleHeader?.hasStatistics == true) add(DetailPage.STATS)
+        }
+    }
+    val activePage = pages.firstOrNull { it.name == pageName } ?: DetailPage.RATING
     var stageIndex by rememberSaveable(match.uniqueKey) { mutableIntStateOf(0) }
     val stages = (viewModel.ratingState as? LoadState.Ready)?.value?.stages.orEmpty()
     val selectedStageIndex = if (stages.isEmpty()) 0 else stageIndex.coerceIn(stages.indices)
@@ -74,6 +93,9 @@ fun RatingsScreen(viewModel: MiaopuViewModel, match: MatchSummary) {
         detail.ensureStats()
     }
     LaunchedEffect(match.uniqueKey, selectedStage) { selectedStage?.let(detail::loadStage) }
+    LaunchedEffect(match.uniqueKey, activePage) {
+        if (match.hasTextLive && activePage == DetailPage.LIVE) viewModel.bindTextLive(match)
+    }
 
     Scaffold(
         containerColor = MiuixTheme.colorScheme.surface,
@@ -89,91 +111,101 @@ fun RatingsScreen(viewModel: MiaopuViewModel, match: MatchSummary) {
         },
     ) { innerPadding ->
         LazyColumn(
-            state = if (activePage == 0) ratingListState else dataListState,
+            state = when (activePage) {
+                DetailPage.LIVE -> liveListState
+                DetailPage.RATING -> ratingListState
+                DetailPage.STATS -> dataListState
+            },
             modifier = Modifier.fillMaxSize().padding(innerPadding),
             contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            item(key = "hero") { MatchHero(match.withLiveScore(liveScore), liveScore) }
+            item(key = "hero") { MatchHero(match.withLiveScore(liveScore), liveScore, viewModel::openTeam) }
             if (visibleHeader == null) {
                 item(key = "initial-loading") { DetailNotice("正在加载比赛详情", loading = true) }
                 return@LazyColumn
             }
-            if (visibleHeader.hasStatistics) item(key = "pages") {
-                DetailTabs(listOf("评分", "数据"), activePage, style = DetailTabStyle.PAGE) { page = it }
+            if (pages.size > 1) item(key = "pages") {
+                DetailTabs(pages.map { it.label }, pages.indexOf(activePage), style = DetailTabStyle.PAGE) { index ->
+                    pageName = pages[index.coerceIn(pages.indices)].name
+                }
             }
-            if (activePage == 0) {
-                val summary = visibleHeader.summary
-                if (summary?.hasScores == true) item(key = "summary") { AllMatchScoreCard(summary, match.esport) }
-                when (val state = viewModel.ratingState) {
-                    LoadState.Loading -> item { DetailNotice("正在加载单局评分", loading = true) }
-                    is LoadState.Failed -> item {
-                        DetailNotice(state.message, onRetry = if (state.retryable) viewModel::retry else null)
-                    }
-                    is LoadState.Ready -> {
-                        if (stages.isEmpty()) {
-                            item { DetailNotice("这场比赛暂时没有可评分的选手") }
-                        } else {
-                            item(key = "stages") {
-                                DetailTabs(stages.map { it.name }, selectedStageIndex) { nextStage ->
-                                    stageIndex = nextStage
-                                    detail.loadStage(stages[nextStage])
-                                }
-                            }
-                            if (stageDetail == null) {
-                                item(key = "stage-notice") { StageLoadNotice(detail.stage) {
-                                    selectedStage?.let { detail.loadStage(it, retry = true) }
-                                } }
+            when (activePage) {
+                DetailPage.LIVE -> textLiveFeedItems(viewModel.textLive.state)
+                DetailPage.RATING -> {
+                    val summary = visibleHeader.summary
+                    if (summary?.hasScores == true) item(key = "summary") { AllMatchScoreCard(summary, match.esport) }
+                    when (val state = viewModel.ratingState) {
+                        LoadState.Loading -> item { DetailNotice("正在加载单局评分", loading = true) }
+                        is LoadState.Failed -> item {
+                            DetailNotice(state.message, onRetry = if (state.retryable) viewModel::retry else null)
+                        }
+                        is LoadState.Ready -> {
+                            if (stages.isEmpty()) {
+                                item { DetailNotice("这场比赛暂时没有可评分的选手") }
                             } else {
-                                if (groups.isNotEmpty()) item(key = "teams") {
-                                    StableDetailSlot(stagePending, layout, "teams", notice = {
+                                item(key = "stages") {
+                                    DetailTabs(stages.map { it.name }, selectedStageIndex) { nextStage ->
+                                        stageIndex = nextStage
+                                        detail.loadStage(stages[nextStage])
+                                    }
+                                }
+                                if (stageDetail == null) {
+                                    item(key = "stage-notice") { StageLoadNotice(detail.stage) {
+                                        selectedStage?.let { detail.loadStage(it, retry = true) }
+                                    } }
+                                } else {
+                                    if (groups.isNotEmpty()) item(key = "teams") {
+                                        StableDetailSlot(stagePending, layout, "teams", notice = {
+                                            StageLoadNotice(detail.stage) {
+                                                selectedStage?.let { detail.loadStage(it, retry = true) }
+                                            }
+                                        }) {
+                                            DetailTabs(groupNames, selectedGroup, style = DetailTabStyle.TEAM, logos = groups.map { it.logoUrl }) { groupIndex = it }
+                                        }
+                                    }
+                                    if (stagePending && groups.isEmpty()) item(key = "stage-progress") {
                                         StageLoadNotice(detail.stage) {
                                             selectedStage?.let { detail.loadStage(it, retry = true) }
                                         }
-                                    }) {
-                                        DetailTabs(groupNames, selectedGroup, style = DetailTabStyle.TEAM, logos = groups.map { it.logoUrl }) { groupIndex = it }
                                     }
-                                }
-                                if (stagePending && groups.isEmpty()) item(key = "stage-progress") {
-                                    StageLoadNotice(detail.stage) {
-                                        selectedStage?.let { detail.loadStage(it, retry = true) }
-                                    }
-                                }
-                                if (targets.isEmpty()) item { DetailNotice("这个分组暂时没有评分对象") }
-                                itemsIndexed(orderedTargets, key = { _, target -> "target-${target.outBizType.length}:${target.outBizType}${target.outBizNo}" }, contentType = { _, _ -> "player" }) { _, target ->
-                                    StableDetailSlot(stagePending, layout, "target-${target.outBizType.length}:${target.outBizType}${target.outBizNo}") {
-                                        MatchRatingPlayerCard(target) { viewModel.openComments(target) }
+                                    if (targets.isEmpty()) item { DetailNotice("这个分组暂时没有评分对象") }
+                                    itemsIndexed(orderedTargets, key = { _, target -> "target-${target.outBizType.length}:${target.outBizType}${target.outBizNo}" }, contentType = { _, _ -> "player" }) { _, target ->
+                                        StableDetailSlot(stagePending, layout, "target-${target.outBizType.length}:${target.outBizType}${target.outBizNo}") {
+                                            MatchRatingPlayerCard(target) { viewModel.openComments(target) }
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-            } else {
-                if (detail.maps.isNotEmpty()) item(key = "maps") {
-                    DetailTabs(detail.maps.map { it.name }, detail.maps.indexOfFirst { it.id == detail.selectedMapId }.coerceAtLeast(0)) {
-                        detail.loadStats(detail.maps[it].id)
-                    }
-                }
-                if (statsDetail?.teams?.size == 2) {
-                    item(key = "map-score") {
-                        StableDetailSlot(statsPending, layout, "map-score") {
-                            MatchMapScoreCard(statsDetail.teams)
+                DetailPage.STATS -> {
+                    if (detail.maps.isNotEmpty()) item(key = "maps") {
+                        DetailTabs(detail.maps.map { it.name }, detail.maps.indexOfFirst { it.id == detail.selectedMapId }.coerceAtLeast(0)) {
+                            detail.loadStats(detail.maps[it].id)
                         }
                     }
-                }
-                if (statsDetail == null) {
-                    item(key = "stats-notice") { StatsLoadNotice(detail.statistics) { detail.loadStats() } }
-                } else if (statsDetail.teams.isEmpty() || statsDetail.teams.all { it.players.isEmpty() }) {
-                    item(key = "stats-notice") {
-                        if (statsPending) StatsLoadNotice(detail.statistics) { detail.loadStats() }
-                        else DetailNotice("这场比赛暂时没有技术统计")
+                    if (statsDetail?.teams?.size == 2) {
+                        item(key = "map-score") {
+                            StableDetailSlot(statsPending, layout, "map-score") {
+                                MatchMapScoreCard(statsDetail.teams)
+                            }
+                        }
                     }
-                } else {
-                    itemsIndexed(statsDetail.teams, key = { index, _ -> "stats-$index" }, contentType = { _, _ -> "stats" }) { index, team ->
-                        StableDetailSlot(statsPending, layout, "stats-$index", notice = if (index == 0) ({
-                            StatsLoadNotice(detail.statistics) { detail.loadStats() }
-                        }) else null) { MatchStatsTable(team, layout.tableScroll("stats-$index")) }
+                    if (statsDetail == null) {
+                        item(key = "stats-notice") { StatsLoadNotice(detail.statistics) { detail.loadStats() } }
+                    } else if (statsDetail.teams.isEmpty() || statsDetail.teams.all { it.players.isEmpty() }) {
+                        item(key = "stats-notice") {
+                            if (statsPending) StatsLoadNotice(detail.statistics) { detail.loadStats() }
+                            else DetailNotice("这场比赛暂时没有技术统计")
+                        }
+                    } else {
+                        itemsIndexed(statsDetail.teams, key = { index, _ -> "stats-$index" }, contentType = { _, _ -> "stats" }) { index, team ->
+                            StableDetailSlot(statsPending, layout, "stats-$index", notice = if (index == 0) ({
+                                StatsLoadNotice(detail.statistics) { detail.loadStats() }
+                            }) else null) { MatchStatsTable(team, layout.tableScroll("stats-$index")) }
+                        }
                     }
                 }
             }

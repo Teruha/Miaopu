@@ -21,6 +21,13 @@ internal sealed interface AppScreen : NavKey {
     data class Ratings(val match: MatchRoute) : AppScreen
 
     @Serializable
+    data class Team(
+        val teamId: String,
+        val name: String,
+        val logoUrl: String?,
+    ) : AppScreen
+
+    @Serializable
     data class Stage(
         val match: MatchRoute,
         val stage: StageRoute,
