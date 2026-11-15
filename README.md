@@ -82,6 +82,20 @@ Android 第三方虎扑赛事评分客户端
   </tr>
 </table>
 
+### 本仓库新增
+
+比赛详情 · 文字实录
+
+<a href="docs/screenshots/text-live.png"><img src="docs/screenshots/text-live.png" width="300" alt="比赛详情：公牛对森林狼的直播页签，文字实录按时间倒序展示"></a>
+
+比赛进行中每 3 秒自动刷新，节次行高亮标记；历史比赛从最后一场往前回看。
+
+球队页 · 战绩与赛程
+
+<a href="docs/screenshots/team.png"><img src="docs/screenshots/team.png" width="300" alt="球队页：芝加哥公牛的战绩、排名、主客场与球队赛程"></a>
+
+点击比赛详情中的队名或队标进入；赛程按未开始（从近到远）、已完场（从近到远）排序。
+
 ## 反馈与贡献
 
 问题反馈和功能建议请提交至 [Issues](https://github.com/KiritoXDone/Miaopu/issues)。问题报告请附上应用版本、Android 版本、相关赛事及复现步骤，必要时提供截图，并隐去个人信息。
@@ -114,7 +128,7 @@ cd Miaopu
 
 感谢 [KiritoXDone](https://github.com/KiritoXDone) 创建了喵扑并开源全部实现，本仓库的全部基础能力均来自其工作。
 
-感谢 [GLM-5.3](https://github.com/zai-org/GLM)（Z.ai）在本次二次开发中承担了 API 调研、功能实现与测试编写。
+感谢 [GLM-5.3](https://github.com/zai-org/GLM-5)（Z.ai）在本次二次开发中承担了 API 调研、功能实现与测试编写。
 
 感谢虎扑及其社区用户提供的赛事内容与讨论，以及 Miuix、Jetpack Compose、Coil 等开源项目。
 
