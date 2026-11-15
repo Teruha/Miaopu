@@ -4,7 +4,7 @@
 
 Android 第三方虎扑赛事评分客户端
 
-[下载应用](https://github.com/KiritoXDone/Miaopu/releases/latest) · [应用截图](#应用截图) · [问题反馈](https://github.com/KiritoXDone/Miaopu/issues)
+[下载应用](https://github.com/Teruha/Miaopu/releases/latest) · [应用截图](#应用截图) · [问题反馈](https://github.com/Teruha/Miaopu/issues)
 
 </div>
 
@@ -16,7 +16,7 @@ Android 第三方虎扑赛事评分客户端
 
 ## 下载与使用
 
-在 [Releases](https://github.com/KiritoXDone/Miaopu/releases/latest) 下载 APK，支持 **Android 7.0 及以上**版本。
+在 [Releases](https://github.com/Teruha/Miaopu/releases/latest) 下载 APK，支持 **Android 7.0 及以上**版本。
 
 赛事订阅位于 **我的 → 赛事订阅**，支持搜索、分类筛选和调整订阅顺序。首页汇总已订阅项目的比赛，赛事页提供完整赛程与搜索入口。
 
@@ -99,7 +99,7 @@ Android 第三方虎扑赛事评分客户端
 
 ## 反馈与贡献
 
-问题反馈和功能建议请提交至 [Issues](https://github.com/KiritoXDone/Miaopu/issues)。问题报告请附上应用版本、Android 版本、相关赛事及复现步骤，必要时提供截图，并隐去个人信息。
+问题反馈和功能建议请提交至 [Issues](https://github.com/Teruha/Miaopu/issues)。问题报告请附上应用版本、Android 版本、相关赛事及复现步骤，必要时提供截图，并隐去个人信息。
 
 欢迎通过 Pull Request 参与项目。较大的改动建议先通过 Issue 讨论。
 
@@ -108,7 +108,7 @@ Android 第三方虎扑赛事评分客户端
 项目使用 Kotlin、Jetpack Compose 和 Miuix。构建环境需要 JDK 21、Android SDK 37 与 Build Tools 37.0.0。
 
 ```bash
-git clone --recurse-submodules https://github.com/KiritoXDone/Miaopu.git
+git clone --recurse-submodules https://github.com/Teruha/Miaopu.git
 cd Miaopu
 ./gradlew testDebugUnitTest assembleDebug
 ```

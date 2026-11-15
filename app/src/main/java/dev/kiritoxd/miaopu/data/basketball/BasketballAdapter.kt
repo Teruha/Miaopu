@@ -102,6 +102,9 @@ internal class BasketballAdapter : BasketballSource {
             } catch (error: IllegalStateException) {
                 AdapterResult.failure(source, AdapterStatus.INVALID_RESPONSE,
                     error.message ?: "文字直播数据暂时不可用", true)
+            } catch (_: org.json.JSONException) {
+                AdapterResult.failure(source, AdapterStatus.INVALID_RESPONSE,
+                    "数据格式暂时不可用", true)
             } catch (error: CancellationException) {
                 throw error
             }

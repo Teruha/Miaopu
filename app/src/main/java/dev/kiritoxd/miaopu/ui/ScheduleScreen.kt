@@ -685,7 +685,7 @@ private fun ProfileContent(viewModel: MiaopuViewModel, innerPadding: PaddingValu
         item {
             ProfileActionCard(
                 title = "关于",
-                summary = "github.com/KiritoXDone/Miaopu · ${viewModel.currentVersion}",
+                summary = "github.com/Teruha/Miaopu · ${viewModel.currentVersion}",
                 action = "查看",
                 onClick = { uriHandler.openUri(viewModel.repositoryUrl) },
             )

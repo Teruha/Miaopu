@@ -120,7 +120,12 @@ fun RatingsScreen(viewModel: MiaopuViewModel, match: MatchSummary) {
             contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            item(key = "hero") { MatchHero(match.withLiveScore(liveScore), liveScore, viewModel::openTeam) }
+            item(key = "hero") {
+                MatchHero(match.withLiveScore(liveScore), liveScore, onTeamClick = { team ->
+                    // Team pages only have data for NBA; other leagues have no parsed source yet.
+                    if (match.hasTextLive) viewModel.openTeam(team)
+                })
+            }
             if (visibleHeader == null) {
                 item(key = "initial-loading") { DetailNotice("正在加载比赛详情", loading = true) }
                 return@LazyColumn
